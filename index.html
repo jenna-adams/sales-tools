@@ -72,77 +72,19 @@
     margin: 0 0 14px;
   }
 
-  /* Template picker */
-  .template-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
+  /* Shared field styling */
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
 
-  .template-option {
-    display: block;
-    cursor: pointer;
-  }
-
-  .template-option input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .template-card {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    padding: 16px;
-    min-height: 44px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: #fff;
-  }
-
-  .template-option input:checked + .template-card {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-  }
-
-  .template-card .dot {
-    flex: none;
-    width: 16px;
-    height: 16px;
-    margin-top: 2px;
-    border-radius: 50%;
-    border: 1.5px solid var(--line);
-    position: relative;
-  }
-
-  .template-option input:checked + .template-card .dot {
-    border-color: var(--accent);
-  }
-
-  .template-option input:checked + .template-card .dot::after {
-    content: "";
-    position: absolute;
-    inset: 3px;
-    background: var(--accent);
-    border-radius: 50%;
-  }
-
-  .template-card .text strong {
+  .field label {
     display: block;
     font-size: 14px;
     font-weight: 600;
-    margin-bottom: 2px;
+    margin-bottom: 6px;
   }
 
-  .template-card .text span {
-    font-size: 13px;
-    color: var(--ink-soft);
-    line-height: 1.4;
-  }
-
-  /* Driver select */
-  select {
+  select,
+  input[type="text"] {
     width: 100%;
     font-family: inherit;
     font-size: 16px;
@@ -152,6 +94,9 @@
     border-radius: var(--radius);
     background: #fff;
     color: var(--ink);
+  }
+
+  select {
     -webkit-appearance: none;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231c1f24' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -160,7 +105,8 @@
     padding-right: 36px;
   }
 
-  select:focus {
+  select:focus,
+  input[type="text"]:focus {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
     border-color: var(--accent);
@@ -247,7 +193,9 @@
 
     <section>
       <p class="section-label">Request</p>
-      <div class="template-list" id="templateList"></div>
+      <select id="templateSelect" required>
+        <option value="" disabled selected>Select a request</option>
+      </select>
     </section>
 
     <section>
@@ -273,78 +221,275 @@
   /* ============================================================
      CONFIG — edit this section to fit your team. No other part
      of this file needs to change for day-to-day updates.
+
+     Each template's shape mirrors the real Eleos Action Request
+     body exactly, so you can paste new ones straight from Postman:
+     just add "id" and "name", drop trailing comments, and delete
+     the example templates once you've got real ones in place.
+
+     Note: {{user.username}}, {{user.full_name}}, {{load.order_number}},
+     {{stop.stop_number}}, etc. inside "data" are Eleos's own data
+     references — this page sends them through untouched and Eleos
+     resolves them server-side. Don't replace or remove them.
      ============================================================ */
 
   // Your Val Town proxy's URL (from the val's page after you save it).
-  const PROXY_URL = "https://yourname-yourval.val.run";
+  const PROXY_URL = "https://jennaadams--d13542d6abb911f191c21607ee4eb77e.web.val.run";
 
   // Must exactly match one value inside the REP_TOKENS secret on the val.
-  const APP_TOKEN = "some-long-random-string";
+  const APP_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlNhbGVzIFRlYW0iLCJhZG1pbiI6dHJ1ZSwiaWF0IjoxNTE2MjM5MDIyfQ.x4RhztPFTVZRXLAQPKo1N8iN1LttaIhlbxUn-2LGltc";
 
-  // Premade Action Requests. Add, remove, or edit entries freely.
-  //   name         — shown in the picker list
-  //   title        — sent to Eleos, shown to the driver (max 50 chars)
-  //   body         — sent to Eleos, shown to the driver (max 250 chars, optional)
-  //   actionLabel  — text on the button the driver taps
-  //   formCode     — which Eleos form the button opens
-  //   data         — optional object to prefill form fields, or null
-  //   showFormEditor — true lets the driver review/edit before submitting
   const TEMPLATES = [
     {
-      id: "load-update",
-      name: "Load Update Needed",
-      title: "Update your load",
-      body: "Please confirm delivery details for your current load.",
-      actionLabel: "Update load",
-      formCode: "REPLACE_WITH_REAL_FORM_CODE",
-      data: null,
-      showFormEditor: true
+      id: "wrong-trailer",
+      name: "Urgent: wrong trailer",
+      title: "🚨 URGENT 🚨",
+      body: "Please turn around ASAP! You've got the wrong trailer.",
+      actions: [
+        {
+          type: "transaction-editor",
+          label: "Headed Back Now",
+          button_color: "#FF3830",
+          button_color_dark: "#FF453A",
+          icon_ref: null,
+          properties: {
+            form_code: "NOT-ARRIVED",
+            data: {
+              "NAME": "{{user.username}}",
+              "LOAD-NUMBER": "{{load.order_number}}",
+              "STOP-NUMBER": "{{stop.stop_number}}"
+            },
+            show_form_editor: false
+          }
+        }
+      ],
+      sound: "default",
+      snooze: { enabled: false },
+      action_button_size: "default"
     },
     {
-      id: "daily-checkin",
-      name: "Daily Check-In",
-      title: "Daily check-in",
-      body: "Let us know your status for today.",
-      actionLabel: "Check in",
-      formCode: "REPLACE_WITH_REAL_FORM_CODE",
-      data: null,
-      showFormEditor: true
+      id: "delivery-rescheduled",
+      name: "Delivery appointment rescheduled",
+      title: "🚚 Your Delivery Appointment Has Been Rescheduled",
+      body: "Due to a scheduling conflict with a prior delivery, your current load's appointment at 10:30 AM EST has been moved to 11:30 AM EST. Please plan accordingly and acknowledge the new time. This change has been updated in your current load details.",
+      actions: [
+        {
+          type: "transaction-editor",
+          label: "Acknowledge",
+          button_color: "#34C759",
+          button_color_dark: "#30D158",
+          icon_ref: "recommendation",
+          properties: {
+            form_code: "LOAD-CHANGE",
+            data: {
+              "USERNAME": "{{user.username}}",
+              "CONFIRMATION": ["CONFIRM"],
+              "WHY": "N/A"
+            },
+            show_form_editor: false
+          }
+        },
+        {
+          type: "transaction-editor",
+          label: "Time Conflict",
+          button_color: "#FF2D55",
+          button_color_dark: "#FF375F",
+          icon_ref: "reject-load",
+          properties: {
+            form_code: "LOAD-CHANGE",
+            data: {
+              "USERNAME": "{{user.username}}",
+              "CONFIRMATION": ["DROP-LOAD"]
+            },
+            show_form_editor: true
+          }
+        }
+      ],
+      sound: "default",
+      snooze: { enabled: true, snooze_duration_minutes: 20 },
+      action_button_size: "default"
+    },
+    {
+      id: "advance-acknowledgment",
+      name: "Weekly advance acknowledgment",
+      title: "Weekly Advance Acknowledgment",
+      body: "Your $100 advance is available Monday. If used, $100 will be deducted from your next paycheck. This is a no-interest loan. By tapping `Acknowledge,` you confirm that you understand and agree to this deduction if the advance is used.",
+      actions: [
+        {
+          type: "transaction-editor",
+          label: "Acknowledge",
+          button_color: "#30B0C7",
+          button_color_dark: "#40C8E0",
+          icon_ref: null,
+          properties: {
+            form_code: "advance-acknowledgment",
+            data: {
+              "username": "{{user.username}}",
+              "name": "{{user.full_name}}",
+              "acknowledgement": ["True"]
+            },
+            show_form_editor: false
+          }
+        },
+        {
+          type: "transaction-editor",
+          label: "No",
+          button_color: "#FF0000",
+          button_color_dark: "#FF0000",
+          icon_ref: null,
+          properties: {
+            form_code: "advance-acknowledgment",
+            data: {
+              "username": "{{user.username}}",
+              "name": "{{user.full_name}}",
+              "acknowledgement": ["true"]
+            },
+            show_form_editor: false
+          }
+        }
+      ],
+      sound: "default",
+      snooze: { enabled: true, snooze_duration_minutes: 20 },
+      action_button_size: "default"
+    },
+    {
+      id: "acknowledge-hos",
+      name: "Hours of service acknowledgment",
+      title: "Hours of Service Acknowledgment",
+      body: "You are nearing your HOS drive-time limit. By tapping `Acknowledge,` you confirm you understand and agree to comply with HOS regulations.",
+      actions: [
+        {
+          type: "transaction-editor",
+          label: "Acknowledge",
+          button_color: "#30B0C7",
+          button_color_dark: "#40C8E0",
+          icon_ref: null,
+          properties: {
+            form_code: "acknowledge-hos",
+            data: {
+              "username": "{{user.username}}",
+              "name": "{{user.full_name}}",
+              "HOS-ACKNOWLEDGMENT": ["True"]
+            },
+            show_form_editor: false
+          }
+        },
+        {
+          type: "transaction-editor",
+          label: "No",
+          button_color: "#FF0000",
+          button_color_dark: "#FF0000",
+          icon_ref: null,
+          properties: {
+            form_code: "acknowledge-hos",
+            data: {
+              "username": "{{user.username}}",
+              "name": "{{user.full_name}}",
+              "HOS-ACKNOWLEDGMENT": ["False"]
+            },
+            show_form_editor: false
+          }
+        }
+      ],
+      sound: "default",
+      snooze: { enabled: true, snooze_duration_minutes: 20 },
+      action_button_size: "default"
+    },
+    {
+      id: "road-closure",
+      name: "Road closure alert",
+      title: "❄️ Road Closure Ahead",
+      body: "I-70 is closed between mile markers 20 and 96 due to heavy snow and avalanche risks. Avoid the area, use alternate routes, and check CDOT's site for live updates. Traction laws are in effect—chains or snow tires may be required near closures.",
+      actions: [
+        {
+          type: "transaction-editor",
+          label: "Acknowledge",
+          button_color: "#30B0C7",
+          button_color_dark: "#40C8E0",
+          icon_ref: null,
+          properties: {
+            form_code: "WEATHER-CONFIRMATION",
+            data: {
+              "USERNAME": "{{user.username}}",
+              "CONFIRMATION": ["CONFIRM"]
+            },
+            show_form_editor: false
+          }
+        }
+      ],
+      sound: "default",
+      snooze: { enabled: true, snooze_duration_minutes: 20 },
+      action_button_size: "default"
+    },
+    {
+      id: "arrival-check",
+      name: "Arrival check",
+      title: "Arrival",
+      body: "Are you onsite and ready to load?",
+      actions: [
+        {
+          type: "transaction-editor",
+          label: "Yes, I'm onsite",
+          button_color: "#34C759",
+          button_color_dark: "#30D158",
+          icon_ref: null,
+          properties: {
+            form_code: "Arrived",
+            data: {
+              "NAME": "{{user.full_name}}",
+              "LOAD-NUMBER": "{{load.order_number}}",
+              "STOP-NUMBER": "{{stop.stop_number}}"
+            },
+            show_form_editor: false
+          }
+        },
+        {
+          type: "transaction-editor",
+          label: "No",
+          button_color: "#FF3830",
+          button_color_dark: "#FF453A",
+          icon_ref: null,
+          properties: {
+            form_code: "NOT-ARRIVED",
+            data: {
+              "NAME": "{{user.username}}",
+              "LOAD-NUMBER": "{{load.order_number}}",
+              "STOP-NUMBER": "{{stop.stop_number}}"
+            },
+            show_form_editor: false
+          }
+        }
+      ],
+      sound: "default",
+      snooze: { enabled: true, snooze_duration_minutes: 30 },
+      action_button_size: "default"
     }
   ];
 
-  // Driver roster. "label" is what reps see, "username" is the Eleos
-  // username the request is actually sent to.
   const DRIVERS = [
-    { label: "John Smith", username: "jsmith" },
-    { label: "Maria Lopez", username: "mlopez" }
+    { label: "Dillon Temples", username: "DILLON" },
+    { label: "Branch Wilson", username: "BRANCH" },
+    { label: "Caleb Alburn", username: "CALEB" },
+    { label: "Jenna Adams", username: "JENNA" }
   ];
 
   /* ============================================================
      Everything below this line runs the page — no need to edit.
      ============================================================ */
 
-  const templateList = document.getElementById('templateList');
+  const templateSelect = document.getElementById('templateSelect');
   const driverSelect = document.getElementById('driverSelect');
   const preview = document.getElementById('preview');
   const submitBtn = document.getElementById('submitBtn');
   const form = document.getElementById('requestForm');
   const resultBox = document.getElementById('result');
 
-  // Build template picker
+  // Build template dropdown
   TEMPLATES.forEach((t, i) => {
-    const label = document.createElement('label');
-    label.className = 'template-option';
-    label.innerHTML = `
-      <input type="radio" name="template" value="${i}">
-      <div class="template-card">
-        <span class="dot"></span>
-        <span class="text">
-          <strong>${escapeHtml(t.name)}</strong>
-          <span>${escapeHtml(t.body || t.title)}</span>
-        </span>
-      </div>
-    `;
-    templateList.appendChild(label);
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = t.name;
+    templateSelect.appendChild(opt);
   });
 
   // Build driver dropdown
@@ -356,8 +501,7 @@
   });
 
   function selectedTemplate() {
-    const checked = templateList.querySelector('input[name="template"]:checked');
-    return checked ? TEMPLATES[Number(checked.value)] : null;
+    return templateSelect.value === '' ? null : TEMPLATES[Number(templateSelect.value)];
   }
 
   function selectedDriver() {
@@ -375,16 +519,17 @@
       return;
     }
 
+    const buttonLabels = t.actions.map((a) => a.label).join(' / ');
     preview.innerHTML = `
       <div class="row"><strong>${escapeHtml(t.title)}</strong></div>
       ${t.body ? `<div class="row">${escapeHtml(t.body)}</div>` : ''}
-      <div class="row">Button: “${escapeHtml(t.actionLabel)}”</div>
+      <div class="row">Buttons: ${escapeHtml(buttonLabels)}</div>
       <div class="row">To: ${d ? escapeHtml(d.label) : '(no driver selected)'}</div>
     `;
     preview.classList.add('show');
   }
 
-  templateList.addEventListener('change', updatePreview);
+  templateSelect.addEventListener('change', updatePreview);
   driverSelect.addEventListener('change', updatePreview);
 
   function showResult(kind, html) {
@@ -404,10 +549,10 @@
       handle: `${t.id}-${Date.now()}`,
       title: t.title,
       body: t.body || undefined,
-      actionLabel: t.actionLabel,
-      formCode: t.formCode,
-      data: t.data,
-      showFormEditor: t.showFormEditor,
+      actions: t.actions,
+      sound: t.sound,
+      snooze: t.snooze,
+      action_button_size: t.action_button_size,
     };
 
     submitBtn.disabled = true;
@@ -427,7 +572,7 @@
 
       if (resp.ok) {
         showResult('success',
-          `<strong>Sent</strong>“${escapeHtml(t.name)}” delivered to ${escapeHtml(d.label)}.` +
+          `<strong>Sent</strong>"${escapeHtml(t.name)}" delivered to ${escapeHtml(d.label)}.` +
           `<span class="handle-tag">Reference: ${data.handle || '(unknown)'}</span>`
         );
         form.reset();
